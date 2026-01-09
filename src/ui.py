@@ -85,39 +85,54 @@ class ExamAIGUI:
         )
         history_button.pack(side="left", padx=5)
         
-        # options button
+        # frame to hold generate, options, and upload buttons side by side
+        generate_frame = tk.Frame(self.root, bg=self.bg_color)
+        generate_frame.pack(side="bottom")
+        
+        # options button (⚙︎)
         options_button = tk.Button(
-            button_frame,
-            text="Options",
+            generate_frame,
+            text="⚙︎",
             command=lambda: print("options"),
             bg=self.button_bg,
             fg=self.button_fg,
-            font=("Roboto", 12, "bold"),
-            width=10,
-            height=2
+            font=("Roboto", 12),
+            width=2,
+            height=1
         )
-        options_button.pack(side="right", padx=5)
+        options_button.pack(side="left", padx=5)
         
-        # add some bottom padding
-        tk.Frame(self.root, height=20, bg=self.bg_color).pack()
-        
-        # generate button
-        generate_button = tk.Button(
-            self.root,
+        # generate button (initially disabled)
+        self.generate_button = tk.Button(
+            generate_frame,
             text="Generate",
+            command=lambda: print("generate"),
+            bg="#cccccc",   # gray when disabled
+            fg=self.button_fg,
+            font=("Roboto", 12, "bold"),
+            width=15,
+            height=2,
+            state="disabled"
+        )
+        self.generate_button.pack(side="left", padx=5)
+        
+        # upload button (+)
+        upload_button = tk.Button(
+            generate_frame,
+            text="+",
             command=lambda: self._open_upload_window(),
             bg=self.button_bg,
             fg=self.button_fg,
             font=("Roboto", 12, "bold"),
-            width=15,
-            height=2
+            width=2,
+            height=1
         )
-        generate_button.pack(pady=10, side="bottom")
+        upload_button.pack(side="right", padx=5)
         
         # upload status label
         self.upload_status_label = tk.Label(
             self.root,
-            text="No files uploaded.\nClick the 'Upload' button to start.",
+            text="No files uploaded.\nClick the '+' button to upload a file.",
             font=("Roboto", 10),
             fg=self.text_color,
             bg=self.bg_color
@@ -293,13 +308,26 @@ class ExamAIGUI:
     def _update_upload_status(self):
         """
         Update the upload status label in the main window.
+        Also update the state of the generate button.
         """
         if len(self.uploaded_files) == 0:
             self.upload_status_label.config(text="No files uploaded.")
+            # disable generate button
+            self.generate_button.config(
+                state="disabled",
+                bg="#cccccc",
+                fg="gray"
+            )
         else:
             file_count = len(self.uploaded_files)
             plural = "s" if file_count > 1 else ""
             self.upload_status_label.config(text=f"{file_count} file{plural} uploaded.")
+            # enable generate button
+            self.generate_button.config(
+                state="normal",
+                bg=self.button_bg,
+                fg=self.button_fg
+            )
     
     def _close_upload_window(self, upload_window):
         """
