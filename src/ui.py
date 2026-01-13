@@ -25,7 +25,7 @@ class ExamAIGUI:
         
         # set window size and center it
         window_width = 500
-        window_height = 500
+        window_height = 550
         screen_width = root.winfo_screenwidth()
         screen_height = root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width/2)
@@ -67,6 +67,30 @@ class ExamAIGUI:
             bg=self.bg_color
         )
         description_label.pack()
+        
+        # uploaded files display area (main screen)
+        upload_display_frame = tk.Frame(self.root, bg=self.bg_color)
+        upload_display_frame.pack(pady=(20, 10), fill=tk.BOTH, expand=True)
+        
+        # create a canvas and scrollbar for uploaded files in main screen
+        self.main_canvas = tk.Canvas(upload_display_frame, bg=self.bg_color, highlightthickness=0, height=150)
+        main_scrollbar = tk.Scrollbar(upload_display_frame, orient="vertical", command=self.main_canvas.yview)
+        self.main_scrollable_frame = tk.Frame(self.main_canvas, bg=self.bg_color)
+        
+        self.main_scrollable_frame.bind(
+            "<Configure>",
+            lambda e: self.main_canvas.configure(scrollregion=self.main_canvas.bbox("all"))
+        )
+        
+        self.main_canvas.create_window((0, 0), window=self.main_scrollable_frame, anchor="nw")
+        self.main_canvas.configure(yscrollcommand=main_scrollbar.set)
+        
+        # frame to hold uploaded files in main screen
+        self.main_files_frame = tk.Frame(self.main_scrollable_frame, bg=self.bg_color)
+        self.main_files_frame.pack(fill=tk.BOTH, expand=True)
+        
+        self.main_canvas.pack(side="left", fill=tk.BOTH, expand=True)
+        main_scrollbar.pack(side="right", fill="y")
         
         # frame to hold history and options buttons side by side
         button_frame = tk.Frame(self.root, bg=self.bg_color)
@@ -292,26 +316,18 @@ class ExamAIGUI:
             bg=self.bg_color
         )
         success_indicator.pack(side="right", padx=(0, 10))
-    
-    def _delete_temp_file(self, file_path, file_frame):
-        """
-        Delete a file from the temp uploaded files list and remove its display.
-        
-        Args:
-            file_path (str): The path of the file to delete.
-            file_frame (tk.Frame): The frame containing the file display.
-        """
-        if file_path in self.temp_uploaded_files:
-            self.temp_uploaded_files.remove(file_path)
-            file_frame.destroy()
             
     def _update_upload_status(self):
         """
         Update the upload status label in the main window.
-        Also update the state of the generate button.
+        Also update the state of the generate button and the main display.
         """
+        # clear existing files in main display
+        for widget in self.main_files_frame.winfo_children():
+            widget.destroy()
+        
         if len(self.uploaded_files) == 0:
-            self.upload_status_label.config(text="No files uploaded.")
+            self.upload_status_label.config(text="No files uploaded.\nClick the '+' button to upload a file.")
             # disable generate button
             self.generate_button.config(
                 state="disabled",
@@ -328,6 +344,70 @@ class ExamAIGUI:
                 bg=self.button_bg,
                 fg=self.button_fg
             )
+            
+            # display uploaded files in main screen
+            for file_path in self.uploaded_files:
+                self._display_uploaded_file_main(self.main_files_frame, file_path)
+                
+    def _display_uploaded_file_main(self, parent_frame, file_path):
+        """
+        Display a single uploaded file with delete button in main screen.
+        
+        Args:
+            parent_frame (tk.Frame): The parent frame to display the file in.
+            file_path (str): The path of the uploaded file.
+        """
+        file_frame = tk.Frame(parent_frame, bg=self.bg_color)
+        file_frame.pack(fill=tk.X, pady=2, padx=10)
+        
+        # get just the filename from the path
+        file_name = file_path.split("/")[-1]
+        
+        # file name label
+        file_label = tk.Label(
+            file_frame,
+            text=file_name,
+            font=("Roboto", 9),
+            fg=self.text_color,
+            bg=self.bg_color,
+            anchor="w"
+        )
+        file_label.pack(side="left", padx=(0, 10))
+        
+        # delete button
+        delete_button = tk.Button(
+            file_frame,
+            text="Delete",
+            command=lambda f=file_path, frame=file_frame: self._delete_file_main(f, frame),
+            bg="#ff6b6b",   # light red
+            fg="white",
+            font=("Roboto", 8),
+            width=5
+        )
+        delete_button.pack(side="right")
+        
+        # success indicator (green dot)
+        success_indicator = tk.Label(
+            file_frame,
+            text="●",
+            font=("Roboto", 10),
+            fg="#4CAF50",   # green
+            bg=self.bg_color
+        )
+        success_indicator.pack(side="right", padx=(0, 10))
+                
+    def _delete_file_main(self, file_path, file_frame):
+        """
+        Delete a file from the main uploaded files list and remove its display.
+        
+        Args:
+            file_path (str): The path of the file to delete.
+            file_frame (tk.Frame): The frame containing the file display.
+        """
+        if file_path in self.uploaded_files:
+            self.uploaded_files.remove(file_path)
+            file_frame.destroy()
+            self._update_upload_status()
     
     def _close_upload_window(self, upload_window):
         """
