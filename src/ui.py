@@ -176,7 +176,7 @@ class ExamAIGUI:
         
         # set window size and position
         upload_width = 500
-        upload_height = 500
+        upload_height = 600
         upload_window.geometry(f'{upload_width}x{upload_height}')
         
         # title label for upload window
@@ -193,7 +193,7 @@ class ExamAIGUI:
         upload_button = tk.Button(
             upload_window,
             text="Browse Files",
-            command=lambda: self._upload_files(upload_window, file_display_frame, files_frame),
+            command=lambda: self._upload_files(upload_window, file_display_frame, files_frame, clear_button),
             bg=self.button_bg,
             fg=self.button_fg,
             font=("Roboto", 11, "bold"),
@@ -226,6 +226,27 @@ class ExamAIGUI:
         canvas.pack(side="left", fill=tk.BOTH, expand=True)
         scrollbar.pack(side="right", fill="y")
         
+        # initialize temp_uploaded_files with current uploaded files
+        self.temp_uploaded_files = self.uploaded_files.copy()
+        
+        # display existing uploaded files
+        for file_path in self.temp_uploaded_files:
+            self._display_uploaded_file(files_frame, file_path)
+        
+        # clear button
+        clear_button = tk.Button(
+            upload_window,
+            text="Clear",
+            command=lambda: self._clear_uploaded_files(files_frame, clear_button),
+            bg="#ff6b6b",   # red background
+            fg="white",
+            font=("Roboto", 11, "bold"),
+            width=7,
+            height=1,
+            state="disabled" if len(self.temp_uploaded_files) == 0 else "normal"
+        )
+        clear_button.pack(pady=(10, 5))
+        
         # done button
         done_button = tk.Button(
             upload_window,
@@ -237,9 +258,9 @@ class ExamAIGUI:
             width=10,
             height=2
         )
-        done_button.pack(pady=20)
+        done_button.pack(pady=(0, 20))
     
-    def _upload_files(self, upload_window, file_display_frame, files_frame):
+    def _upload_files(self, upload_window, file_display_frame, files_frame, clear_button):
         """
         Handle file upload and display uploaded files.
         
@@ -247,6 +268,7 @@ class ExamAIGUI:
             upload_window (tk.Toplevel): The upload window instance.
             file_display_frame (tk.Frame): The frame containing the file display area.
             files_frame (tk.Frame): The frame where uploaded files will be displayed.
+            clear_button (tk.Button): The clear button to update its state.
         """
         # open file dialog for multiple file selection
         file_paths = filedialog.askopenfilenames(
@@ -269,6 +291,9 @@ class ExamAIGUI:
             for file_path in file_paths:
                 self.temp_uploaded_files.append(file_path)
                 self._display_uploaded_file(files_frame, file_path)
+                
+            # update clear button state
+            self._update_clear_button_state(clear_button)
     
     def _display_uploaded_file(self, parent_frame, file_path):
         """
@@ -316,6 +341,48 @@ class ExamAIGUI:
             bg=self.bg_color
         )
         success_indicator.pack(side="right", padx=(0, 10))
+        
+    def _delete_temp_file(self, file_path, file_frame):
+        """
+        Delete a file from the temp uploaded files list and remove its display.
+        
+        Args:
+            file_path (str): The path of the file to delete.
+            file_frame (tk.Frame): The frame containing the file display.
+        """
+        if file_path in self.temp_uploaded_files:
+            self.temp_uploaded_files.remove(file_path)
+            file_frame.destroy()
+            
+    def _clear_uploaded_files(self, files_frame, clear_button):
+        """
+        Clear all uploaded files from the upload window.
+        
+        Args:
+            files_frame (tk.Frame): The frame containing the uploaded files.
+            clear_button (tk.Button): The clear button to update its state.
+        """
+        # Clear the temp uploaded files list
+        self.temp_uploaded_files = []
+        
+        # Remove all file display widgets
+        for widget in files_frame.winfo_children():
+            widget.destroy()
+        
+        # Update clear button state
+        self._update_clear_button_state(clear_button)
+    
+    def _update_clear_button_state(self, clear_button):
+        """
+        Update the state of the clear button based on uploaded files.
+        
+        Args:
+            clear_button (tk.Button): The clear button to update.
+        """
+        if len(self.temp_uploaded_files) == 0:
+            clear_button.config(state="disabled")
+        else:
+            clear_button.config(state="normal")
             
     def _update_upload_status(self):
         """
